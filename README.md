@@ -16,6 +16,7 @@ We are going to demonstrate how you might generate the wafeform. The first thing
 ```
 import numpy as np
 import matplot.pyplot as plt
+from pycbc import types,fft,noise,frame
 from pycbc.conversions import mass1_from_mchirp_q,mass2_from_mchirp_q
 from signal.gensignal import gen_signal_fre
 import Cosmology
@@ -102,6 +103,9 @@ ht_e_HM=tmp_he.to_timeseries()
 The LISA instrumental noise is imported form the LISA data challenge(LDC) working package.
 We also import the necessary modules
 ```
+from pycbc import noise
+from pycbc.psd.read import from_numpy_arrays
+import LISAConstants as LC
 from tdi import noisepsd_T,noisepsd_AE
 ```
 The analytic noise power spectral density(PSD) for TDI A,E,T
@@ -125,3 +129,30 @@ PSD_TDIt= PSD_TDIt/(6*np.pi*f*L)**2
 PSD_TDIt = from_numpy_arrays(f, PSD_TDIt, flen, del_f,flow)
 PSD_TDIae = from_numpy_arrays(f, PSD_TDIae, flen, del_f,flow)
 ```
+We can generate 1 year of noise
+```
+Tobs=3600*24*100
+del_t= 0.5
+tsamples = int(Tobs / del_t)
+noiseT = noise.noise_from_psd(tsamples, del_t, PSD_TDIt)
+noiseAE = noise.noise_from_psd(tsamples, del_t, PSD_TDIae)
+```
+Therefore we can generate the data set by summing the signal and noise in each TDI channels
+```
+#signal + noise
+tstart = int(t0*365*24*3600/del_t)
+strainA = types.TimeSeries(noiseAE.data.data[:],delta_t=noiseAE.delta_t)
+strainE = types.TimeSeries(noiseAE.data.data[:],delta_t=noiseAE.delta_t)
+
+tmp_htA =types.TimeSeries(ht_a_HM.data.data[:],delta_t=ht_a_HM.delta_t)
+tmp_htE =types.TimeSeries(ht_e_HM.data.data[:],delta_t=ht_e_HM.delta_t)
+
+nlen=len(strainA)
+tlen=len(tmp_htA)
+tmp_htA.start_time = tstart *tmp_htA.delta_t     
+tmp_htE.start_time = tstart *tmp_htE.delta_t   
+
+strainA[tstart:tstart+tlen]= strainA[tstart:tstart+tlen] +tmp_htA[0:tlen]
+strainE[tstart:tstart+tlen]= strainE[tstart:tstart+tlen] +tmp_htE[0:tlen]
+```
+
