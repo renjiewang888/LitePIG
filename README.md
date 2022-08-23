@@ -11,6 +11,8 @@ The software requeire LISACode_Radler(https://lisa-ldc.lal.in2p3.fr/code).
 # Example notebooks
 We can made some notebooks available. You can find simple example notebooks.
 
+# Waveform generation
+We are going to demonstrate how you might generate the wafeform. The first thing is import the necessary modules:
 ```
-this is a code
+import numpy as np
 ```
