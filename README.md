@@ -15,4 +15,31 @@ We can made some notebooks available. You can find simple example notebooks.
 We are going to demonstrate how you might generate the wafeform. The first thing is import the necessary modules:
 ```
 import numpy as np
+import matplot.pyplot as plt
+from signal.gensignal import gen_signal_fre
+import Cosmology
+```
+The we"ll set up the parameters of GW
+```
+#assume a signal
+z=1
+m1s=2e5
+m2s=2e4
+
+#dimensionless spins: a=cos(theta_s)*s
+chi1 = 0.0
+chi2 = 0.0
+
+t0=0.05
+#Ecliptic Longitude, Latitude
+theta=1.0
+phi=1.5
+lambd =  phi 
+beta = np.pi/2 -theta
+
+inc = 0.5
+DL = Cosmology.DL(z, w=0)[0] # in Mpc
+
+psi=0.8
+phi0=0.0
 ```
