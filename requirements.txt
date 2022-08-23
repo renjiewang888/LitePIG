@@ -3,3 +3,4 @@ emcee
 matplotlib
 LDC Manual
 dynesty
+lalsuite
