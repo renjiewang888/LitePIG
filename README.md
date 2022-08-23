@@ -20,7 +20,7 @@ from pycbc.conversions import mass1_from_mchirp_q,mass2_from_mchirp_q
 from signal.gensignal import gen_signal_fre
 import Cosmology
 ```
-The we"ll set up the parameters of GW
+Then we"ll set up the parameters of GW
 ```
 #assume a signal
 z=1
@@ -84,4 +84,44 @@ Fa_plus,Fa_cross,Fe_plus,Fe_cross= FLISA(t0,lambd,beta,psi,0)
 print(Fa_plus,Fa_cross,Fe_plus,Fe_cross)
 htilde_a = Fa_plus*hpf + Fa_cross*hcf
 htilde_e = Fe_plus*hpf + Fe_cross*hcf
+```
+
+Next, we can fft it to the time-domain,
+```
+tmp_ha= copy.deepcopy(htilde_a)
+tmp_he= copy.deepcopy(htilde_e)
+tlen = int(1.0 / del_t / htilde_a.delta_f)
+tmp_ha.resize(tlen//2+1)
+tmp_he.resize(tlen//2+1)
+
+ht_a_HM=tmp_ha.to_timeseries()
+ht_e_HM=tmp_he.to_timeseries()
+```
+
+# LISA Noise Generation
+The LISA instrumental noise is imported form the LISA data challenge(LDC) working package.
+We also import the necessary modules
+```
+from tdi import noisepsd_T,noisepsd_AE
+```
+The analytic noise power spectral density(PSD) for TDI A,E,T
+```
+del_f= 1e-6
+f= np.arange(1e-5,3.0,del_f)
+flen = int(2.0/del_f)+1
+flow=1e-5
+#freq= logsampling(1e-5,1.0,200)
+PSD_TDIT= noisepsd_T(f)
+PSD_TDIAE= noisepsd_AE(f)
+```
+Then, We can reduce PSD and define a noise PSD 
+```
+L= 2.5e9/LC.c
+PSD_TDIae= PSD_TDIAE/(2*np.sin(2*np.pi*f*L)**2)
+PSD_TDIt= PSD_TDIT/(8*np.sin(np.pi*f*L)**2*np.sin(2*np.pi*f*L)**2)
+PSD_TDIae= PSD_TDIae/(6*np.pi*f*L)**2
+PSD_TDIt= PSD_TDIt/(6*np.pi*f*L)**2
+
+PSD_TDIt = from_numpy_arrays(f, PSD_TDIt, flen, del_f,flow)
+PSD_TDIae = from_numpy_arrays(f, PSD_TDIae, flen, del_f,flow)
 ```
