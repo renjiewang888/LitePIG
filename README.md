@@ -77,9 +77,7 @@ def FLISA(t,lambd,beta,psi,t0):
     return Fa_plus,Fa_cross,Fe_plus,Fe_cross
 ```
 
-
-
-In the fow-frequency approximation, the response for two TDI observables can be obtained
+the response for two TDI observables can be obtained
 ```
 #get a frequency domain waveform htilde_a, htilde_e
 f,hpf,hcf = gen_signal_fre(chirpmass,q,DL,inc,phi0,chi1,chi2,apx[1],modes[1])
@@ -170,6 +168,13 @@ frame.write_frame("strainE.gwf", "LISA", dataE)
 
 ```
 # Parameter estimation
+We also import the necessary modules
+```
+from pycbc.psd import welch, interpolate
+from pycbc.distributions import Uniform, JointDistribution, SinAngle
+from templateTDILF import TemplateTDILF
+from pycbc.inference import sampler
+```
 we read the strain data
 ```
 dataA = frame.read_frame('strainA.gwf','LISA')
@@ -186,9 +191,18 @@ Then we convert to a frequency series by taking the data's FFT
 ```
 af =dataA1.to_frequencyseries()  
 ef =dataE1.to_frequencyseries()
+data={}
+data['LISATDI1'] = af
+data['LISATDI2'] = ef
+
+psds={}
+psdAE = interpolate(PSD_TDIae,af.delta_f)
+psds['LISATDI1'] = psdAE
+psds['LISATDI2'] = psdAE
 ```
 
 We use the dynesty package for inferring Bayesian posteriors distribution of parameters and evidences.
+We can set some parameters and the parameter priors are given by 
 ```
 static = {'chirpmass':chirpmass,
           'q':q,
@@ -220,3 +234,57 @@ lambd_prior= Uniform(lambd=(0.0,2*np.pi))
 beta_prior= CosAngle(beta=None)
 prior = JointDistribution(variable,distance_prior,inclination_prior,lambd_prior,beta_prior)
 ```
+We can set dynesty and run
+```
+model_HM =  TemplateTDILF(variable,copy.deepcopy(data),
+                    low_frequency_cutoff={'LISATDI1':flow,'LISATDI2':flow},
+                    high_frequency_cutoff={'LISATDI1':fhigh,'LISATDI2':fhigh},
+                    psds = psds,
+                    static_params = static,
+                    prior = prior,
+                    sample_rate = 2,
+                    )
+
+smpl = sampler.DynestySampler(model_HM, nlive=1000, nprocesses=100,use_mpi=True) 
+# Note it may take ~1-3 hours for this to run
+smpl.run()
+
+s = smpl.samples
+res1=smpl._sampler.results
+np.save('sampler_results_hm.npy',res1)
+```
+
+# Plotting results
+```
+import matplotlib.pyplot as plt
+from dynesty import plotting as dyplot
+
+
+res2=np.load('sampler_results_hm.npy',allow_pickle=True)
+try:
+    weights2 = np.exp(res2.item()['logwt'] - res2.item()['logz'][-1])
+except:
+    weights2 = res2.item()['weights']
+
+sample2= res2.item()['samples']
+
+truth=[DL,inc,lambd,beta]
+para_range =[(6500,7000),(0.4,0.6),(lambd-0.01,lambd+0.01),(beta-0.01,beta+0.01)]
+label=['$D_{L}$','$\iota$','$\lambda$','$\\beta$']
+fg, ax = dyplot.cornerplot(res2.item(), color='blue', truths=truth,
+                           truth_color='black', show_titles=True,title_fmt='0.3f',
+                           max_n_ticks=5, quantiles=[0.16,0.5,0.84],quantiles_2d=[0.68,0.95,0.99],
+                           labels=label,span=para_range)
+
+plt.show()
+
+fig, axes = dyplot.traceplot(res2.item(), truths=np.zeros(len(variable)),quantiles=[0.16, 0.5, 0.84],
+                             truth_color='black', show_titles=True,labels=variable,
+                             trace_cmap='viridis', connect=True,
+                             connect_highlight=range(5))
+plt.show()
+
+fg, ax = dyplot.cornerpoints(res2.item(), cmap='plasma', truths=truth,labels=variable,kde=False)
+plt.show()
+```
+
