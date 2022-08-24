@@ -24,7 +24,7 @@ import Cosmology
 ```
 Then we"ll set up the parameters of GW
 ```
-#assume a signal
+#MBHB parameters
 z=1
 m1s=2e5
 m2s=2e4
@@ -48,10 +48,11 @@ phi0=0.0
 
 chirpmass=mchirp_from_mass1_mass2(m1,m2)
 q=q_from_mass1_mass2(m1,m2)
+#we use the frequency domain waform model: IMRPhenomXHM
 apx=['SEOBNRv4HM','IMRPhenomXHM']
 modes=[[[2,2]],[[2,2],[2,1],[3,2],[3,3],[4,4]]] 
 ```
-And the response functions are
+In the fow-frequency approximation, the response functions are
 ```
 def FLISA(t,lambd,beta,psi,t0):
     alpha= 2*np.pi*(t-t0)      #t,t0: yr
@@ -104,7 +105,7 @@ The LISA instrumental noise is imported form the LISA data challenge(LDC) workin
 We also import the necessary modules
 ```
 import numpy as np
-from pycbc import noise
+from pycbc import noise, frame
 from pycbc.psd.read import from_numpy_arrays
 from pycbc.filter import highpass,lowpass_fir,
 import LISAConstants as LC
@@ -164,5 +165,58 @@ dataA=highpass(strainA,flow)
 dataA=lowpass_fir(dataA,fhigh,512)
 dataE=highpass(strainE,flow)
 dataE=lowpass_fir(dataE,fhigh,512)
+frame.write_frame("strainA.gwf", "LISA", dataA)
+frame.write_frame("strainE.gwf", "LISA", dataE)
+
+```
+# Parameter estimation
+we read the strain data
+```
+dataA = frame.read_frame('strainA.gwf','LISA')
+dataE = frame.read_frame('strainE.gwf','LISA')
+```
+we can limit to times series around the signal
+```
+tlen =int(1.0 / dataA.delta_t / 2e-7)
+tstart=int(t0*365*24*3600/dataA.delta_t)
+dataA1 = dataA.time_slice(tstart*dataA.delta_t,tstart*dataA.delta_t+tlen*dataA.delta_t)
+dataE1 = dataE.time_slice(tstart*dataE.delta_t,tstart*dataE.delta_t+tlen*dataE.delta_t)
+```
+Then we convert to a frequency series by taking the data's FFT
+```
+af =dataA1.to_frequencyseries()  
+ef =dataE1.to_frequencyseries()
 ```
 
+We use the dynesty package for inferring Bayesian posteriors distribution of parameters and evidences.
+```
+static = {'chirpmass':chirpmass,
+          'q':q,
+          #'distance':DL,
+          #'inc':inc,
+          'phi0':phi0,
+          'chi1':chi1,
+          'chi2':chi2,
+          #'lambd':lambd,
+          #'beta':beta,
+          'psi':psi,
+          't0':t0,
+          #'trajdict':trajdict,
+          #'TDItag':TDItag,
+          'apx':apx[1],
+          'modes':modes[1]      
+         }
+variable = [
+            #'chirpmass',
+            #'q',
+            'distance',
+            'inc',
+            'lambd',
+            'beta'
+            ]
+distance_prior = Uniform(distance=(DL*0.4, DL*2))    
+inclination_prior = SinAngle(inc=None)
+lambd_prior= Uniform(lambd=(0.0,2*np.pi))
+beta_prior= CosAngle(beta=None)
+prior = JointDistribution(variable,distance_prior,inclination_prior,lambd_prior,beta_prior)
+```
