@@ -6,7 +6,7 @@ These examples explore how to generate the GW waveform, how we generate LISA ins
 If you use LitePIG, please refer the following paper: arXiv: 
 
 # Requirements
-The file requirements.txt which you should install if you plan to use LitePIG for GW data analysis.
+The file [requirements.txt](https://github.com/renjiewang888/LitePIG/blob/main/requirements.txt) which you should install if you plan to use LitePIG for GW data analysis.
 The software requeire [LISACode_Radler](https://lisa-ldc.lal.in2p3.fr/code), [pycbc](https://pycbc.org/) and [LALSuite](https://lscsoft.docs.ligo.org/lalsuite/).
 
 # Example notebooks
