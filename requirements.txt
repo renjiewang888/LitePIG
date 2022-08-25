@@ -1,6 +1,6 @@
 pycbc
 emcee
 matplotlib
-LDC Radel
+LDC Radler
 dynesty
 lalsuite
