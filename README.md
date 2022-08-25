@@ -257,6 +257,7 @@ np.save('sampler_results_hm.npy',res1)
 
 # Plotting results
 ```
+import numpy as np
 import matplotlib.pyplot as plt
 from dynesty import plotting as dyplot
 
