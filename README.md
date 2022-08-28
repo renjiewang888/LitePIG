@@ -91,6 +91,7 @@ Next, we can fft it to the time-domain,
 ```
 tmp_ha= copy.deepcopy(htilde_a)
 tmp_he= copy.deepcopy(htilde_e)
+del_t=0.5
 tlen = int(1.0 / del_t / htilde_a.delta_f)
 tmp_ha.resize(tlen//2+1)
 tmp_he.resize(tlen//2+1)
