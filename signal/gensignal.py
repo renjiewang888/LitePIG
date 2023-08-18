@@ -1,14 +1,7 @@
 # coding=utf-8
 import numpy as np
-import sys
+import sys,os
 
-import matplotlib.pyplot as plt
-import pycbc.noise
-import pycbc.psd
-import pylab
-from tqdm import tqdm
-from time import *
-from scipy import integrate
 
 from pycbc import types
 from pycbc.waveform import get_td_waveform,get_fd_waveform,get_fd_waveform_sequence
@@ -17,9 +10,9 @@ from pycbc.filter import interpolate_complex_frequency, resample_to_delta_t
 from pycbc.waveform.utils import phase_from_frequencyseries,amplitude_from_frequencyseries
 from pycbc.types import real_same_precision_as
 import lal
-#sys.path.append('/disk1/home/wangrj/.local/lib/python3.7/site-packages')
+
 from pyFDresponse import *
-from matplotlib.ticker import LinearLocator
+#from matplotlib.ticker import LinearLocator
 from astropy import units as u
 from astropy.coordinates import SkyCoord
 #plt.switch_backend('agg')
@@ -27,9 +20,10 @@ from astropy.coordinates import SkyCoord
 
 
 # Cartesian SSB components of spacecraft positions
-p1 = np.fromfile('/disk1/home/wangrj/higherorder/signal/LISA_orbit_data/SCP1_1yr.dat',sep=' ')
-p2 = np.fromfile('/disk1/home/wangrj/higherorder/signal/LISA_orbit_data/SCP2_1yr.dat',sep=' ')
-p3 = np.fromfile('/disk1/home/wangrj/higherorder/signal/LISA_orbit_data/SCP3_1yr.dat',sep=' ')
+path =os.path.abspath(os.path.dirname(__file__))
+p1 = np.fromfile(path+'/LISA_orbit_data/SCP1_1yr.dat',sep=' ')
+p2 = np.fromfile(path+'/LISA_orbit_data/SCP2_1yr.dat',sep=' ')
+p3 = np.fromfile(path+'/LISA_orbit_data/SCP3_1yr.dat',sep=' ')
 #print(p1)
 #print(len(p1))
 p1= p1.reshape(int(len(p1)/3),3)
@@ -429,7 +423,7 @@ def func_wfTDI(freqs, wfTDI):
 
 
 
-def get_TDI(chirpmass,q,distance,inc,phi0,chi1,chi2,lambd,beta,psi,t0,trajdict,TDItag,apx,modes,df=2e-7):
+def get_TDI(chirpmass,q,distance,inc,phi0,chi1,chi2,lambd,beta,psi,t0,trajdict,TDItag,apx,modes,df=2e-7,del_t = 1.0):
     """
     Generates TDIs (X, Y, Z) or(A, E, T) in Fourrier Domain 
     @return freq is array of frequency
@@ -459,7 +453,7 @@ def get_TDI(chirpmass,q,distance,inc,phi0,chi1,chi2,lambd,beta,psi,t0,trajdict,T
     freq = logsampling(hlm[l,m][2].sample_frequencies[minindex],fcut,1000)
 
     ####
-    del_t = 0.5
+    del_t = del_t
     fsample_SMBH = 1./del_t
     fnyquist_SMBH = 1./2*fsample_SMBH     #
     df =df
