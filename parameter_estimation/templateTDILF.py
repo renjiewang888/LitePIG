@@ -3,15 +3,16 @@
 import numpy as np
 import sys
 from scipy.special import logsumexp
-sys.path.append('/disk1//home/wangrj/higherorder/signal')
+path ='/disk1/home/wrjx'
+sys.path.append(path)
 from tqdm import tqdm
 from pycbc import fft,types,frame
 from pycbc import filter as pyfilter
 from pycbc.waveform import get_fd_waveform,get_td_waveform,utils
 from pycbc.detector import Detector
 from pycbc.psd import interpolate
-from gensignal import gen_signal,gen_signal_fre,get_fd_htilde_lm,get_fd_LISATDI,func_wfTDI, get_TDI
-from pycbc.conversions import mass1_from_mchirp_q,mass2_from_mchirp_q
+from LitePIG.signal.gensignal import *
+from pycbc.conversions import q_from_mass1_mass2,mchirp_from_mass1_mass2,mass1_from_mchirp_q,mass2_from_mchirp_q
 from pycbc.inference.models.gaussian_noise import BaseGaussianNoise
 
 
@@ -97,15 +98,15 @@ class TemplateTDILF(BaseGaussianNoise):
   
        
         ##### Generate TDI
-        m1=mass1_from_mchirp_q(p['chirpmass'],p['q'])
-        m2=mass2_from_mchirp_q(p['chirpmass'],p['q'])
-        M1 =m1+m2
-
+        if "m1" in p :
+            p['chirpmass'] = mchirp_from_mass1_mass2(p['m1'],p['m2'])
+            p['q'] = q_from_mass1_mass2(p['m1'],p['m2'])
+        # m1=mass1_from_mchirp_q(p['chirpmass'],p['q'])
+        # m2=mass2_from_mchirp_q(p['chirpmass'],p['q'])
+        # M1 =m1+m2
         #chirpmass=p['chirpmass']
         #q=p['q']
-   
-        #print(p)
-        #mode=[[[2,2]],[[2,2],[2,1],[3,3],[4,4],[5,5]],[[2,2],[2,1],[3,2],[3,3],[4,4]]] 
+  
         
         f,hpf,hcf = gen_signal_fre(p['chirpmass'],p['q'],p['distance'],p['inc'],p['phi0'],
                                    p['chi1'],p['chi2'],p['apx'],p['modes'],df=df)

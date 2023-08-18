@@ -2,21 +2,22 @@
 
 import numpy as np
 import matplotlib.pyplot as plt
-import pylab
-import sys
-import copy
-import corner
-from time import *
-sys.path.append('/disk1//home/wangrj/higherorder/signal')
+import sys, os, math,copy,corner
 
-sys.path.append('/disk1/home/wangrj/LDC/MLDC-master/software/LDCpipeline/scripts')
+from time import *
+path ='/disk1/home/wrjx'
+sys.path.append(path)
+# sys.path.append('/disk1/home/wangrj/LDC/MLDC-master/software/LDCpipeline/scripts')
+from LitePIG.signal.gensignal import gen_signal,gen_signal_fre,get_fd_htilde_lm,get_fd_LISATDI,func_wfTDI, get_TDI
+#from LitePIG.noise.TDInoise import *
+
 from pycbc import types,fft,frame
-from pycbc.filter import highpass,lowpass_fir, matched_filter, matched_filter_core,sigmasq
+# from pycbc.filter import highpass,lowpass_fir, matched_filter, matched_filter_core,sigmasq
 from pycbc.psd import welch, interpolate
 from pycbc.psd.read import from_numpy_arrays
 from pycbc.conversions import q_from_mass1_mass2,mchirp_from_mass1_mass2,primary_mass,secondary_mass
 from pycbc.conversions import mass1_from_mchirp_q,mass2_from_mchirp_q
-from gensignal import gen_signal,gen_signal_fre,get_fd_htilde_lm,get_fd_LISATDI,func_wfTDI, get_TDI
+
 from pycbc.distributions import Uniform, JointDistribution, SinAngle,UniformAngle,UniformLog10,CosAngle
 from pycbc.inference import  sampler
 
@@ -75,44 +76,49 @@ PSD_TDIae = from_numpy_arrays(f, PSD_TDIae, flen, del_f,flow)
 z=1
 m1s=2e5
 m2s=2e4
+print('m1,m2',m1s,m2s)
 
 #dimensionless spins: a=cos(theta_s)*s
 chi1 = 0.0
 chi2 = 0.0
 
 #Tcs = 0.8 * LC.YRSID_SI
-t0= np.random.uniform(0.0,5.0)
+# t0= np.random.uniform(0.0,5.0)
 t0=0.05
 #Ecliptic Longitude, Latitude
 theta=1.0
 phi=1.5
 lambd =  phi 
 beta = np.pi/2 -theta
+print('lambd,beta',lambd,beta)
 
 inc = 0.5
 DL = Cosmology.DL(z, w=0)[0] # in Mpc
-print('Dl',DL)
+DL = Cosmology.DL(z, w=0)[0] # in Mpc
+print('Dl,inc',DL,inc)
 
 #phi0 = np.random.uniform(0.0, 2.0*np.pi)
 #psi = np.random.uniform(0.0, 2.0*np.pi)   #pols=psi
 psi=0.8
 phi0=0.0
 print('t0,phi0,psi',t0,phi0,psi)
-# So far, the only choice implemented: MLDC trajectories and TDI XYZ
-[fRef, trajdict, TDItag] = [0., trajdict_MLDC, "TDIAET"]
+
+# Equal arm orbit: MLCD trajectories 
+trajdict = trajdict_MLDC 
+# The first-generatrion TDI 
+TDItag =  "TDIAET" 
 
 
-#Masses quoted in the hdf5 files are always redshifted masses.
 # m1 =  m1s*(1+z)  ### redshifted masses
 # m2 =  m2s*(1+z)
 m1=m1s
 m2=m2s
-print('m1,m2',m1,m2)
+# print('m1,m2',m1,m2)
 chirpmass=mchirp_from_mass1_mass2(m1,m2)
 q=q_from_mass1_mass2(m1,m2)
-print(chirpmass,q)
-print(mass1_from_mchirp_q(chirpmass,q),mass2_from_mchirp_q(chirpmass,q))
+print('chirp mass, q ',chirpmass,q)
 
+#we use the frequency domain waform model: IMRPhenomHM
 apx=['SEOBNRv4HM','IMRPhenomXHM']
 modes=[[[2,2]],[[2,2],[2,1],[3,2],[3,3],[4,4]]] 
 
@@ -136,25 +142,21 @@ ef = Fe_plus*hpf + Fe_cross*hcf
 # plt.ylabel('strain')
 # plt.legend()
 # plt.xlim(1e-4,1e-1)
-# plt.savefig('TDI_AET.png',dpi=300)
+
 # #plt.show()
 # plt.clf()
 '''
 
 
 
-
+num=0
 #read the strain data
-dataA = frame.read_frame('strainA.gwf','LISA')
-dataE = frame.read_frame('strainE.gwf','LISA')
-# dataA=highpass(dataA,1e-4)
-# dataA=lowpass_fir(dataA,0.1,512)
-# dataE=highpass(dataE,1e-4)
-# dataE=lowpass_fir(dataE,0.1,512)
-print(dataA.sample_times)
-print('data dt and df',dataA.delta_t,dataA.delta_f,1.0/dataA.duration)
+dataA = frame.read_frame('lowF/HM/%d/strainA.gwf'%num,'LISA')
+dataE = frame.read_frame('lowF/HM/%d/strainE.gwf'%num,'LISA')
+# print(dataA.sample_times)
+# print('data dt and df',dataA.delta_t,dataA.delta_f,1.0/dataA.duration)
 
-tlen =int(1.0 / dataA.delta_t / 2e-7)
+tlen =int(1.0 / dataA.delta_t / 2e-6)
 tstart=int(t0*365*24*3600/dataA.delta_t)
 print(tlen,tstart)
 #########Limit to times around the signal
@@ -163,22 +165,7 @@ dataE1 = dataE.time_slice(tstart*dataE.delta_t,tstart*dataE.delta_t+tlen*dataE.d
 print('limit to times: data dt and df',dataA1.delta_t,dataA1.delta_f,1.0/dataA1.duration) 
 
 
-#### Estimate the power spectral density of the data
-# seg_len = int(100000 / dataA1.delta_t)
-# seg_stride = int(seg_len / 2)
-# psdA1 = interpolate(welch(dataA1,seg_len=seg_len,seg_stride=seg_stride),1.0/dataA1.duration)
-# psdE1 = interpolate(welch(dataE1,seg_len=seg_len,seg_stride=seg_stride),1.0/dataE1.duration)
 
-
-# plt.loglog(psdA1.sample_frequencies, np.sqrt(psdA1.sample_frequencies*psdA1))
-# plt.loglog(psdE1.sample_frequencies, np.sqrt(psdE1.sample_frequencies*psdE1))
-# plt.loglog(PSD_TDIae.sample_frequencies,np.sqrt(PSD_TDIae*PSD_TDIae.sample_frequencies),label='$S^{a,e}_{h}$')
-# plt.xlim(1.0e-5,1)
-# plt.legend()
-# plt.ylabel('$Strain^2 / Hz$')
-# plt.xlabel('Frequency (Hz)')
-# plt.savefig('psd.png',dpi=300)
-# plt.clf()
 
 af =dataA1.to_frequencyseries()   # Convert to a frequency series by taking the data's FFT
 ef =dataE1.to_frequencyseries()
@@ -224,10 +211,12 @@ static = {'chirpmass':chirpmass,
           'psi':psi,
           't0':t0,
           'trajdict':trajdict,
+          'number_orbits':False,
+          'TDI_froze_arm':True,
+          'frozenLISA':True,
           'TDItag':TDItag,
           'apx':apx[1],
           'modes':modes[1]      #modes[1] HM
-          #'f_lower':1.0e-3
          }
 variable = [
             #'chirpmass',
@@ -248,13 +237,15 @@ beta_prior= CosAngle(beta=None)
 
 truth=[DL,inc,lambd,beta]
 #para_range =[(chirpmass-10,chirpmass+10),(q-0.01,q+0.01),(DL*0.4,DL*1.2),(0.0,np.pi),(0.0,2*np.pi),(-np.pi/2,-np.pi/2)]
-para_range =[(DL*0.4,DL*1.5),(0.0,np.pi),(0.0,2*np.pi),(-np.pi/2,np.pi/2)]
+# para_range =[(DL*0.4,DL*1.5),(0.0,np.pi),(0.0,2*np.pi),(-np.pi/2,np.pi/2)]
+para_range =[(DL*0.8,DL*1.2),(inc-0.1,inc+0.1),(lambd-0.01,lambd+0.01),(beta-0.01,beta+0.01)]
 prior = JointDistribution(variable,distance_prior,inclination_prior,lambd_prior,beta_prior)
 print('prior',prior(distance=DL,inc=inc,lambd=lambd,beta=beta))
 
 # prior = JointDistribution(variable,Uniform(chirpmass=(chirpmass-10,chirpmass+10)),Uniform(q=(q-0.01,q+0.01)),
 #                           distance_prior,inclination_prior,lambd_prior,beta_prior)
 # print('prior',prior(chirpmass=chirpmass,q=q,distance=DL,inc=inc,lambd=lambd,beta=beta))
+
 # prior = JointDistribution(variable,Uniform(chirpmass=(chirpmass-10,chirpmass+10)),Uniform(q=(q-0.01,q+0.01)),distance_prior,inclination_prior)
 # print('prior',prior(chirpmass=chirpmass,q=q,distance=DL,inc=inc))
 
@@ -279,76 +270,51 @@ model_HM =  TemplateTDILF(variable,copy.deepcopy(data),
 
 
 
-smpl = sampler.DynestySampler(model_HM, nlive=1000, nprocesses=100,use_mpi=True) 
+smpl = sampler.DynestySampler(model_HM, nlive=1000, nprocesses=150,use_mpi=True) 
 #_ = smpl.set_p0() # If we don't set p0, it will use the models prior to draw initial points!
 # Note it may take ~1-3 hours for this to run
 smpl.run()
 
 
+end=time()
+print('run time',(end-start)/3600)
 
-
-
-
-num=0
-#print(res1)
 s = smpl.samples
 print('samples',s)
 res1=smpl._sampler.results
 print('result',res1)
-np.save('result/Q3nod/%d/sampler_results_hm%d.npy'%(ID,j),res1)
-
-
-
-# _ = pylab.hist(s['chirpmass'], bins=50)
-# plt.axvline(x=chirpmass)
-# plt.xlim(chirpmass-1,chirpmass+1)
-# plt.savefig('TDIfig/HM/%d/chirp_mass_hm.png'%num,dpi=300)
-# plt.clf()
-# _ = pylab.hist(s['q'], bins=500)
-# plt.axvline(x=q)
-# plt.xlim(q-2e-6,q+2e-6)
-# plt.savefig('TDIfig/HM/%d/q_hm.png'%num,dpi=300)
-# plt.clf()
-# print(s['distance'].shape)
-###################################
-
-
-
-
+np.save('lowF/HM/%d/sampler_results_hm.npy'%num,res1)
 
 sample= res1['samples']
-#np.save("result/Q3nod/%d/sample_hm%d.npy"%(ID,j),sample)
- np.save("TDIfig/HM/%d/sample_hm.npy"%num,sample)
+np.save("lowF/HM/%d/sample_hm.npy"%num,sample)
 
 
 
+
+###########################################################################
 try:
     weights = np.exp(res1['logwt'] - res1['logz'][-1])
 except:
     weights = res1['weights']
 
-###########################################################################
+# figure = corner.corner(sample,truths=truth,labels=variable,bins=50,weights=weights,
+#                        quantiles=[0.16,0.5,0.84],show_titles=True,title_fmt='0.3f',
+#                        range=para_range)
+#plt.savefig('lowF/HM/%d/corner_hm.png'%num,dpi=300)
+# plt.clf()
 
-figure = corner.corner(sample,truths=truth,labels=variable,bins=50,weights=weights,
-                       quantiles=[0.16,0.5,0.84],show_titles=True,title_fmt='0.3f',
-                       range=para_range)
-#plt.savefig('TDIfig/HM/%d/corner_hm.png'%num,dpi=300)
-#plt.savefig('result/Q3nod/%d/corner_hm%d.png'%(ID,j),dpi=300)
-plt.clf()
-
-from IPython.display import display, Math
-labels=['distance','inclination','tc']
-for i in range(len(variable)):
-    mcmc = np.percentile(sample[:, i], [16, 50, 84])
-    qq = np.diff(mcmc)
-    txt = "\mathrm{{{3}}} = {0:.3f}_{{-{1:.3f}}}^{{{2:.3f}}}"
-    txt = txt.format(mcmc[1], qq[0], qq[1], variable[i])
-    print(txt)
-    display(Math(txt))
+# from IPython.display import display, Math
+# labels=['distance','inclination','tc']
+# for i in range(len(variable)):
+#     mcmc = np.percentile(sample[:, i], [16, 50, 84])
+#     qq = np.diff(mcmc)
+#     txt = "\mathrm{{{3}}} = {0:.3f}_{{-{1:.3f}}}^{{{2:.3f}}}"
+#     txt = txt.format(mcmc[1], qq[0], qq[1], variable[i])
+#     print(txt)
+#     display(Math(txt))
 
 
-end=time()
-print('time',(end-start)/3600)
+
 
 
 
@@ -359,31 +325,25 @@ fg, ax = dyplot.cornerplot(res1, color='blue', truths=truth,
                            truth_color='black', show_titles=True,title_fmt='0.3f',
                            max_n_ticks=5, quantiles=[0.16,0.5,0.84],labels=variable,
                            span=para_range)
-# ax[0][0].set(xlim=[1e5-1,1e5+1])
-# ax[1][0].set(xlim=[1e5-1,1e5+1])
-# ax[2][0].set(xlim=[1e5-1,1e5+1])
-#plt.savefig("TDIfig/HM/%d/coner_plots_hm.png"%num,dpi=300)
-#plt.savefig("result/Q3nod/%d/coner_plots_hm%d.png"%(ID,j),dpi=300)
+
+plt.savefig("lowF/HM/%d/coner_plots_hm.png"%num,dpi=300)
 plt.clf()
 
 fig, axes = dyplot.runplot(res1)  # summary (run) plot
-#plt.savefig("TDIfig/HM/%d/summary_plots_hm.png"%num,dpi=300)
-#plt.savefig("result/Q3nod/%d/summary_plots_hm%d.png"%(ID,j),dpi=300)
-
+plt.savefig("lowF/HM/%d/summary_plots_hm.png"%num,dpi=300)
 plt.clf()
 
 fig, axes = dyplot.traceplot(res1, truths=np.zeros(len(variable)),quantiles=[0.16, 0.5, 0.84],
                              truth_color='black', show_titles=True,labels=variable,
                              trace_cmap='viridis', connect=True,
                              connect_highlight=range(5))
-#axes[0][1].set(xlim=[chirpmass-1,chirpmass+1])
-#plt.savefig("TDIfig/HM/%d/trace_plots_hm.png"%num,dpi=300)
-#plt.savefig("result/Q3nod/%d/trace_plots_hm%d.png"%(ID,j),dpi=300)
+
+plt.savefig("lowF/HM/%d/trace_plots_hm.png"%num,dpi=300)
 plt.clf()
+
 fg, ax = dyplot.cornerpoints(res1, cmap='plasma', truths=truth,labels=variable,
                              kde=False)
-# plt.savefig("TDIfig/HM/%d/coner_points_hm.png"%num,dpi=300)
-#plt.savefig("result/Q3nod/%d/coner_points_hm%d.png"%(ID,j),dpi=300)
+plt.savefig("lowF/HM/%d/coner_points_hm.png"%num,dpi=300)
 plt.clf()
 
 
