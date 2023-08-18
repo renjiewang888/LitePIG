@@ -1,23 +1,11 @@
 # coding=utf-8
 import numpy as np
 import sys
-sys.path.append('/disk1/home/wangrj/LDC/MLDC-master/software/LDCpipeline/scripts')
+# sys.path.append('/disk1/home/wangrj/LDC/MLDC-master/software/LDCpipeline/scripts')
 import matplotlib.pyplot as plt
-
-from pycbc import fft,types,frame,noise,filter
-import pycbc.psd
-import pylab
-from tqdm import tqdm
-from scipy import interpolate,special
-from pycbc.psd.read import from_numpy_arrays
-from pycbc import noise,frame
-#from pyIMRPhenomD import IMRPhenomD, MSUN_SI, PC_SI
-import Cosmology
 import LISAConstants as LC
-#import ParseWriteXML as pwXML
-from LISAhdf5 import LISAhdf5,ParsUnits
 from pyFDresponse import *
-from psd import parse_arguments,Series
+# from psd import parse_arguments,Series
 from tdi import *
 from LISACommonFunctions import *
 from GenerateFD_SignalTDIs import *
