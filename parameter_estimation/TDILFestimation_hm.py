@@ -3,7 +3,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import sys, os, math,copy,corner
-
 from time import *
 path ='/disk1/home/wrjx'
 sys.path.append(path)
@@ -70,7 +69,7 @@ PSD_TDIae = from_numpy_arrays(f, PSD_TDIae, flen, del_f,flow)
 
 
 
-
+####################################################################
 #generate the template waveform
 ##MBHBs parameters
 z=1
@@ -126,10 +125,10 @@ modes=[[[2,2]],[[2,2],[2,1],[3,2],[3,3],[4,4]]]
 
 
 
+##################################################################
 
-'''
 #generate TDI data
-fre,hpf,hcf = gen_signal_fre(chirpmass,q,DL,inc,phi0,chi1,chi2,apx[1],modes[1])
+fre,hpf,hcf = gen_signal_fre(chirpmass,q,DL,inc,phi0,chi1,chi2,apx[1],modes[1],df=2e-6)
 Fa_plus,Fa_cross,Fe_plus,Fe_cross= FLISA(t0,lambd,beta,psi,0)
 af = Fa_plus*hpf + Fa_cross*hcf
 ef = Fe_plus*hpf + Fe_cross*hcf
@@ -145,30 +144,28 @@ ef = Fe_plus*hpf + Fe_cross*hcf
 
 # #plt.show()
 # plt.clf()
-'''
 
 
 
+######################################################################
 num=0
-#read the strain data
-dataA = frame.read_frame('lowF/HM/%d/strainA.gwf'%num,'LISA')
-dataE = frame.read_frame('lowF/HM/%d/strainE.gwf'%num,'LISA')
-# print(dataA.sample_times)
-# print('data dt and df',dataA.delta_t,dataA.delta_f,1.0/dataA.duration)
+# #read the strain data
+# dataA = frame.read_frame('lowF/HM/%d/strainA.gwf'%num,'LISA')
+# dataE = frame.read_frame('lowF/HM/%d/strainE.gwf'%num,'LISA')
+# # print(dataA.sample_times)
+# # print('data dt and df',dataA.delta_t,dataA.delta_f,1.0/dataA.duration)
 
-tlen =int(1.0 / dataA.delta_t / 2e-6)
-tstart=int(t0*365*24*3600/dataA.delta_t)
-print(tlen,tstart)
-#########Limit to times around the signal
-dataA1 = dataA.time_slice(tstart*dataA.delta_t,tstart*dataA.delta_t+tlen*dataA.delta_t)
-dataE1 = dataE.time_slice(tstart*dataE.delta_t,tstart*dataE.delta_t+tlen*dataE.delta_t)
-print('limit to times: data dt and df',dataA1.delta_t,dataA1.delta_f,1.0/dataA1.duration) 
-
-
+# tlen =int(1.0 / dataA.delta_t / 2e-6)
+# tstart=int(t0*365*24*3600/dataA.delta_t)
+# print(tlen,tstart)
+# #########Limit to times around the signal
+# dataA1 = dataA.time_slice(tstart*dataA.delta_t,tstart*dataA.delta_t+tlen*dataA.delta_t)
+# dataE1 = dataE.time_slice(tstart*dataE.delta_t,tstart*dataE.delta_t+tlen*dataE.delta_t)
+# print('limit to times: data dt and df',dataA1.delta_t,dataA1.delta_f,1.0/dataA1.duration) 
 
 
-af =dataA1.to_frequencyseries()   # Convert to a frequency series by taking the data's FFT
-ef =dataE1.to_frequencyseries()
+# af =dataA1.to_frequencyseries()   # Convert to a frequency series by taking the data's FFT
+# ef =dataE1.to_frequencyseries()
 
 print('delta_f',af.delta_f)
 print(af.sample_frequencies)
@@ -238,7 +235,7 @@ beta_prior= CosAngle(beta=None)
 truth=[DL,inc,lambd,beta]
 #para_range =[(chirpmass-10,chirpmass+10),(q-0.01,q+0.01),(DL*0.4,DL*1.2),(0.0,np.pi),(0.0,2*np.pi),(-np.pi/2,-np.pi/2)]
 # para_range =[(DL*0.4,DL*1.5),(0.0,np.pi),(0.0,2*np.pi),(-np.pi/2,np.pi/2)]
-para_range =[(DL*0.8,DL*1.2),(inc-0.1,inc+0.1),(lambd-0.01,lambd+0.01),(beta-0.01,beta+0.01)]
+para_range =[(DL*0.4,DL*2),(inc-0.1,inc+0.1),(lambd-0.01,lambd+0.01),(beta-0.01,beta+0.01)]
 prior = JointDistribution(variable,distance_prior,inclination_prior,lambd_prior,beta_prior)
 print('prior',prior(distance=DL,inc=inc,lambd=lambd,beta=beta))
 
@@ -250,14 +247,23 @@ print('prior',prior(distance=DL,inc=inc,lambd=lambd,beta=beta))
 # print('prior',prior(chirpmass=chirpmass,q=q,distance=DL,inc=inc))
 
 
-if(50/(mass1_from_mchirp_q(chirpmass,q)+mass2_from_mchirp_q(chirpmass,q))<=1e-4):
-    flow=1e-4
-    fhigh=2e4/(mass1_from_mchirp_q(chirpmass,q)+mass2_from_mchirp_q(chirpmass,q))
-else:
-    flow=1e-3
-    fhigh=np.minimum(1e-1,2e4/(mass1_from_mchirp_q(chirpmass,q)+mass2_from_mchirp_q(chirpmass,q)))  
-print('flow,fhigh',flow,fhigh)
+# if(50/(mass1_from_mchirp_q(chirpmass,q)+mass2_from_mchirp_q(chirpmass,q))<=1e-4):
+#     flow=1e-4
+#     fhigh=2e4/(mass1_from_mchirp_q(chirpmass,q)+mass2_from_mchirp_q(chirpmass,q))
+# else:
+#     flow=1e-3
+#     fhigh=np.minimum(1e-1,2e4/(mass1_from_mchirp_q(chirpmass,q)+mass2_from_mchirp_q(chirpmass,q)))  
+# print('flow,fhigh',flow,fhigh)
 
+M1=m1+m2
+fhigh = 0.1 /(M1*MTSUN_SI)
+
+# flow = 10 / M1
+
+flow = 1e-3 / (M1*MTSUN_SI)
+if(flow<1e-5):
+    flow=1e-5
+print('flow,fhigh',flow,fhigh)
 from templateTDILF import TemplateTDILF
 model_HM =  TemplateTDILF(variable,copy.deepcopy(data),
                     low_frequency_cutoff={'LISATDI1':flow,'LISATDI2':flow},
